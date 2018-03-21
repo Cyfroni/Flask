@@ -35,7 +35,8 @@ def main():
 @app.route('/login', methods=['POST'])
 def login():
     js = request.get_json()
-    if not basic_auth.check_credentials(js['username'], js['password']):
+    if 'login' not in js or 'pass' not in js or \
+            not basic_auth.check_credentials(js['login'], js['pass']):
         return "DENIED", 401
 
     global cookie
@@ -47,6 +48,7 @@ def login():
 
 
 @app.route('/logout', methods=['POST'])
+@protected
 def logout():
     cookie_secret = request.cookies.get('cookie_secret')
     resp = make_response(
@@ -145,6 +147,7 @@ def reset():
     fishes = dict()
     counter = 1
     return 'data reset'
+
 
 # web: gunicorn app:app
 # heroku ps:scale worker=1
