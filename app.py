@@ -21,7 +21,7 @@ def protected(f):
     def wrap(*args, **kwargs):
         cookie_secret = request.cookies.get('cookie_secret')
         if cookie == 0 or cookie_secret != cookie:
-            return 'DENIED', 401
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
 
     return wrap
@@ -32,8 +32,10 @@ def main():
     return 'Hello, World!'
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'GET'])
 def login():
+    if request.method == 'GET':
+        return "You must login first"
     js = request.get_json()
     if 'login' not in js or 'pass' not in js or \
             not basic_auth.check_credentials(js['login'], js['pass']):
@@ -50,12 +52,12 @@ def login():
 @app.route('/logout', methods=['POST'])
 @protected
 def logout():
-    cookie_secret = request.cookies.get('cookie_secret')
-    resp = make_response(
-        render_template(
-            'goodbye.html', name=cookie_secret
-        )
-    )
+    resp = redirect(url_for('main'))
+    # resp = make_response(
+    #     render_template(
+    #         'goodbye.html', name=cookie_secret
+    #     )
+    # )
     resp.set_cookie('cookie_secret', '-')
     global cookie
     cookie = 0
@@ -76,32 +78,32 @@ def fish1():
         global fishes, counter
         fishes[f'id_{counter}'] = new_fish
         counter += 1
-        return f'fish added with id {counter - 1}'
+        return redirect(url_for('fish2', _id=counter-1))
     elif request.method == 'GET':
         return jsonify(fishes)
 
 
-@app.route('/fishes/<id_>', methods=['GET', 'DELETE', 'PUT', 'PATCH'])
+@app.route('/fishes/<_id>', methods=['GET', 'DELETE', 'PUT', 'PATCH'])
 @protected
-def fish2(id_):
+def fish2(_id):
     global fishes
-    fish_id = f'id_{id_}'
+    fish_id = f'id_{_id}'
     if fish_id not in fishes:
-        return f"fish with id {id_} does not exist", 400
+        return f"fish with id {_id} does not exist", 400
 
     if request.method == 'GET':
         return jsonify(fishes[fish_id])
     elif request.method == 'DELETE':
         fishes.pop(fish_id)
-        return f'deleted fish with id {id_}'
+        return f'deleted fish with id {_id}'
     elif request.method == 'PUT':
         fishes[fish_id] = dict(request.get_json())
-        return f'put fish with id {id_}'
+        return f'put fish with id {_id}'
     elif request.method == 'PATCH':
         patch = dict(request.get_json())
         for key, value in patch.items():
             fishes[fish_id][key] = value
-        return f'patched fish with id {id_}'
+        return f'patched fish with id {_id}'
 
 
 # {
